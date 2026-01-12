@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:medicine_reminder/model/med_item.dart';
 
+import 'package:provider/provider.dart';
+import 'package:medicine_reminder/viewmodel/meds.dart';
 // Assuming your DosageType enum is available
 // enum DosageType { mg, gm, kg, ml, pcs }
 
 class AddMed extends StatefulWidget {
   const AddMed({super.key});
-
   @override
   State<AddMed> createState() => _AddMedState();
 }
@@ -19,11 +21,14 @@ class _AddMedState extends State<AddMed> {
 
   // 2. Form State variables
   // DosageType _selectedType = DosageType.mg;
+  DosageType _selectedUnit = DosageType.pcs;
   DateTime _selectedTime = DateTime.now();
+
   bool _isRecurring = false;
 
   // 3. Weekday Selection (1 = Mon, 7 = Sun as per Dart standard)
   List<int> _selectedDays = [];
+
   final List<String> _daysOfWeek = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
@@ -78,14 +83,25 @@ class _AddMedState extends State<AddMed> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel("Unit"),
-                      DropdownButtonFormField(
+                      DropdownButtonFormField<DosageType>(
                         decoration: _inputDecoration("Type"),
-                        items: const [
-                          DropdownMenuItem(value: "mg", child: Text("mg")),
-                          DropdownMenuItem(value: "ml", child: Text("ml")),
-                          DropdownMenuItem(value: "pcs", child: Text("pcs")),
-                        ],
-                        onChanged: (val) {},
+                        items: DosageType.values.map((DosageType type) {
+                          // 👈 2. Map Enum values
+                          return DropdownMenuItem<DosageType>(
+                            value: type,
+                            child: Text(
+                              type.name,
+                            ), // This displays "mg", "ml", etc.
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedUnit =
+                                  val; // Now types match (DosageType = DosageType)
+                            });
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -136,28 +152,38 @@ class _AddMedState extends State<AddMed> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildLabel("Repeat Weekly"),
+
                 Switch(
                   value: _isRecurring,
-                  onChanged: (val) => setState(() => _isRecurring = val),
+                  onChanged: (val) {
+                    setState(() {
+                      _isRecurring = val;
+
+                      // If toggled ON, select every day (1 to 7)
+                      _selectedDays = _isRecurring ? [1, 2, 3, 4, 5, 6, 7] : [];
+                    });
+                  },
                 ),
               ],
             ),
 
-            if (_isRecurring) ...[
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(7, (index) {
-                  int dayNum = index + 1; // 1 = Mon
-                  bool isSelected = _selectedDays.contains(dayNum);
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        isSelected
-                            ? _selectedDays.remove(dayNum)
-                            : _selectedDays.add(dayNum);
-                      });
-                    },
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(7, (index) {
+                int dayNum = index + 1; // 1 = Mon
+                bool isSelected = _selectedDays.contains(dayNum);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      isSelected
+                          ? _selectedDays.remove(dayNum)
+                          : _selectedDays.add(dayNum);
+                      _isRecurring != _isRecurring;
+                    });
+                  },
+                  child: SizedBox(
+                    height: 30,
                     child: CircleAvatar(
                       radius: 20,
                       backgroundColor: isSelected
@@ -166,35 +192,35 @@ class _AddMedState extends State<AddMed> {
                       child: Text(
                         _daysOfWeek[index],
                         style: TextStyle(
+                          fontSize: 10,
                           color: isSelected ? Colors.white : Colors.black,
                         ),
                       ),
                     ),
-                  );
-                }),
-              ),
-            ],
-            const SizedBox(height: 20),
+                  ),
+                );
+              }),
+            ),
+
+            const SizedBox(height: 25),
 
             // --- Info Field ---
             _buildLabel("Additional Info"),
             TextFormField(
               controller: _infoController,
-              maxLines: 2,
-              decoration: _inputDecoration("e.g. Take after food"),
+              maxLines: 1,
+              decoration: _inputDecoration("Take after food"),
             ),
             const SizedBox(height: 40),
 
             // --- Final Schedule Button ---
             SizedBox(
               width: double.infinity,
-              height: 55,
+              height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  // Logic to build MedItem and send to ViewModel
-                },
+                onPressed: submitMed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
@@ -217,7 +243,7 @@ class _AddMedState extends State<AddMed> {
     padding: const EdgeInsets.only(bottom: 8.0),
     child: Text(
       text,
-      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
     ),
   );
 
@@ -236,4 +262,64 @@ class _AddMedState extends State<AddMed> {
     color: Colors.grey[100],
     borderRadius: BorderRadius.circular(12),
   );
+
+  void submitMed() {
+    // 1. Data Collection & Validation
+    final String name = _nameController.text.trim();
+    final String dosageStr = _dosageController.text.trim();
+    final String info = _infoController.text.trim();
+
+    // Basic Validation Check
+    if (name.isEmpty) {
+      _showErrorSnackBar("Please enter the medicine name");
+      return;
+    }
+    if (dosageStr.isEmpty || int.tryParse(dosageStr) == null) {
+      _showErrorSnackBar("Please enter a valid dosage amount");
+      return;
+    }
+
+    // 2. Create the MedItem Instance
+    final newMed = MedItem(
+      id: DateTime.now().millisecondsSinceEpoch, // Unique ID based on time
+      name: name,
+      dosage: int.parse(dosageStr),
+      type: _selectedUnit,
+      addInfo: info,
+      repeatDays: _selectedDays, // Empty if it's a one-time med
+      scheduledTime: _selectedTime,
+      isTaken: false,
+    );
+
+    // 3. Save to Hive via ViewModel
+    try {
+      // We use listen: false because we are inside a function, not the build method
+      Provider.of<MedicationViewModel>(
+        context,
+        listen: false,
+      ).addMedication(newMed);
+
+      // 4. Success Feedback & Navigation
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Medication scheduled successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pop(context); // Go back to Home Screen
+    } catch (e) {
+      _showErrorSnackBar("Failed to save medication: $e");
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 }

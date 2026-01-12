@@ -1,60 +1,66 @@
 import 'package:flutter/material.dart';
-
-//get medItem
+import 'package:provider/provider.dart';
 import 'package:medicine_reminder/model/med_item.dart';
+import 'package:medicine_reminder/viewmodel/meds.dart';
+import 'package:medicine_reminder/viewmodel/dates.dart';
+import 'package:medicine_reminder/viewmodel/intakes.dart';
 import 'package:medicine_reminder/view/widgets/medtile.dart';
 
-class TodayMeds extends StatefulWidget {
+class TodayMeds extends StatelessWidget {
   const TodayMeds({super.key});
 
   @override
-  State<TodayMeds> createState() => _TodayMedsState();
-}
-
-class _TodayMedsState extends State<TodayMeds> {
-  //static data for ui
-  List<MedItem> _medications = [
-    MedItem(
-      id: 1,
-      name: "Vitamin C",
-      dosage: 500,
-      type: DosageType.mg,
-      addInfo: "After breakfast",
-      scheduledTime: DateTime.now().copyWith(hour: 8, minute: 30),
-    ),
-    MedItem(
-      id: 2,
-      name: "Metformin",
-      dosage: 1,
-      type: DosageType.pcs,
-      addInfo: "Before dinner",
-      scheduledTime: DateTime.now().copyWith(hour: 20, minute: 0),
-    ),
-  ];
-
-  void _handleToggle(int index) {
-    setState(() {
-      _medications[index] = _medications[index].copyWith(
-        isTaken: !_medications[index].isTaken,
-      );
-    });
-    // TODO: Add your Database Update logic here!
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final dateVM = context.watch<DateViewModel>();
+    final medVM = context.watch<MedicationViewModel>();
+    final intakeVM = context.watch<IntakeViewModel>();
+
+    final selectedDate = dateVM.selectedDate;
+
+    final List<MedItem> displayMeds = medVM.getSortedMedsForDate(selectedDate);
+
+    if (displayMeds.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(
+              Icons.health_and_safety,
+              size: 64,
+              color: Color.fromARGB(255, 53, 145, 0),
+            ),
+            SizedBox(height: 16),
+            Text(
+              "No medications scheduled for today",
+              style: TextStyle(
+                color: Color.fromARGB(255, 53, 145, 0),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
-      // shrinkWrap: true, // Only use if NOT inside Expanded
-      itemCount: _medications.length,
-      padding: const EdgeInsets.only(bottom: 100), // Space for FAB
+      itemCount: displayMeds.length,
+      padding: const EdgeInsets.only(bottom: 100, top: 10),
       itemBuilder: (context, index) {
-        final med = _medications[index];
+        final med = displayMeds[index];
+
+        final bool taken = intakeVM.isTaken(med.id, selectedDate);
+
+        final bool missed = intakeVM.isMissed(med, selectedDate);
+
+        final bool withinGrace = intakeVM.isWithinGrace(med, selectedDate);
 
         return MedicationTile(
           item: med,
+          taken: taken,
+          missed: missed,
+          withinGrace: withinGrace,
           onTap: () {
-            // This calls the logic in your ViewModel
-            // viewModel.toggleTakenStatus(med.id);
+            intakeVM.toggleTaken(med.id, selectedDate);
           },
         );
       },
