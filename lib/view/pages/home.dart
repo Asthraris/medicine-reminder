@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:medicine_reminder/view/pages/addmed.dart';
 import 'package:medicine_reminder/view/widgets/datescrolller.dart';
+import 'package:medicine_reminder/view/widgets/todaymed.dart';
 import 'package:medicine_reminder/viewmodel/dates.dart';
 
 class MyHome extends StatelessWidget {
@@ -8,14 +9,14 @@ class MyHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel_date = DateViewModel();
+    final viewModelDate = DateViewModel();
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(right: 120),
+              padding: const EdgeInsets.only(right: 220),
               child: Text(
                 "hi user", //Change it later
 
@@ -28,9 +29,9 @@ class MyHome extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             DateScroller(
-              dates: viewModel_date.dates,
-              selectedDate: viewModel_date.selectedDate,
-              onDateSelected: viewModel_date.selectDate,
+              dates: viewModelDate.dates,
+              selectedDate: viewModelDate.selectedDate,
+              onDateSelected: viewModelDate.selectDate,
             ),
             const SizedBox(height: 22),
             Text(
@@ -41,6 +42,7 @@ class MyHome extends StatelessWidget {
                 fontSize: 24,
               ),
             ),
+            const Expanded(child: TodayMeds()),
           ],
         ),
       ),
