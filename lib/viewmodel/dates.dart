@@ -96,4 +96,16 @@ class DateViewModel extends ChangeNotifier {
 
     updateDateStatus(date, status);
   }
+
+  /// Wipes the local memory and regenerates default dates after a factory reset
+  void refreshAfterReset() {
+    _selectedDate = DateTime.now(); // Reset focus to today
+
+    // This is the most important part:
+    // It re-runs the logic that checks the (now empty) Hive box
+    // and creates default 'future/missed' tags.
+    _generateDates();
+
+    notifyListeners(); // Tell the UI to refresh the scroller immediately
+  }
 }

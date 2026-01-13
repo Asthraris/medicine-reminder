@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:medicine_reminder/core/utils.dart';
 import 'package:medicine_reminder/model/med_item.dart';
 
 import 'package:provider/provider.dart';
@@ -47,6 +48,13 @@ class _AddMedState extends State<AddMed> {
           "Add Medicine",
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: "Reset App",
+            onPressed: () => AppUtilities.performFactoryReset(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

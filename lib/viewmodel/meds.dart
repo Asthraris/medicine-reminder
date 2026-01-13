@@ -92,6 +92,11 @@ class MedicationViewModel extends ChangeNotifier {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  void refreshAfterReset() {
+    _allMeds = _box.values.toList();
+    notifyListeners(); // Tell the UI to rebuild (it will now show an empty list)
+  }
+
   Future<void> deleteMedicationWithCleanup(
     MedItem med,
     dynamic intakeVM,

@@ -60,6 +60,10 @@ class IntakeViewModel extends ChangeNotifier {
     notifyListeners(); // THIS is what fixes your UI
   }
 
+  void refreshAfterReset() {
+    notifyListeners(); // Forces UI to re-check isTaken/canTake (which will now be false)
+  }
+
   void take(MedItem med, DateTime date) {
     if (!canTake(med, date)) return;
 

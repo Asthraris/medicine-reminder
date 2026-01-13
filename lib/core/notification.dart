@@ -84,6 +84,11 @@ class NotificationService {
     debugPrint('Cancelled notification for medId=$medId (id=$id)');
   }
 
+  static Future<void> cancelAll() async {
+    await _plugin.cancelAll();
+    debugPrint("All notifications cancelled.");
+  }
+
   /// ---------- NEXT TIME CALC ----------
   static tz.TZDateTime _nextInstanceOfTime(DateTime time) {
     final now = tz.TZDateTime.now(tz.local);
