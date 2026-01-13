@@ -23,14 +23,14 @@ class MyHome extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(right: 130),
+              padding: const EdgeInsets.only(right: 160, top: 75),
               child: Text(
                 _greeting, //Change it later
 
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).primaryColor,
-                  fontSize: 24,
+                  fontSize: 30,
                 ),
               ),
             ),

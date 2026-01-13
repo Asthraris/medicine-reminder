@@ -30,7 +30,8 @@ void main() async {
   await Hive.openBox<DateItem>('history_box');
   await Hive.openBox<MedIntake>('intake_box');
 
-  NotificationService.init();
+  await NotificationService.init();
+
   runApp(
     MultiProvider(
       providers: [

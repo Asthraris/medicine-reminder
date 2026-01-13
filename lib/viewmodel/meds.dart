@@ -29,20 +29,16 @@ class MedicationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  int _notificationId(int medId, DateTime time) {
-    return ((medId * 1000) + (time.hour * 100 + time.minute)) & 0x7FFFFFFF;
-  }
-
   /// Adds a new medication to Hive and refreshes the local list
   Future<void> addMedication(MedItem med) async {
     try {
-      final notificationId = _notificationId(med.id, med.scheduledTime);
+      final notificationId = NotificationService.notificationIdForMed(med.id);
 
       debugPrint('Scheduling notification for ${med.name}');
       debugPrint('Notification ID: $notificationId');
       debugPrint('Scheduled time: ${med.scheduledTime}');
-      await NotificationService.scheduleMedNotification(
-        id: notificationId,
+      await NotificationService.scheduleDailyMedication(
+        medId: med.id,
         title: 'Medication Reminder',
         body: 'Time to take ${med.name}',
         time: med.scheduledTime,
@@ -96,22 +92,19 @@ class MedicationViewModel extends ChangeNotifier {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Future<void> deleteMedicationWithCleanup(MedItem med, intakeVM) async {
-    // 1. Delete med
+  Future<void> deleteMedicationWithCleanup(
+    MedItem med,
+    dynamic intakeVM,
+  ) async {
+    // 1. Delete medication
     await _box.delete(med.id);
 
-    // 2. Delete all intakes (delegated correctly)
+    // 2. Delete all intake records
     await intakeVM.deleteAllForMedication(med.id);
 
-    // 3. Cancel notifications
-    for (int i = 0; i < 7; i++) {
-      final id = _notificationId(
-        med.id,
-        med.scheduledTime.add(Duration(days: i)),
-      );
-      await NotificationService.cancelNotification(id);
-    }
+    // 3. Cancel repeating notification (ONCE)
+    await NotificationService.cancelMedication(med.id);
 
-    _loadMeds(); // updates med list
+    _loadMeds();
   }
 }
