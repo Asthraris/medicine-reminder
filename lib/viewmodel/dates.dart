@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:medicine_reminder/model/date_item.dart';
+import 'package:medicine_reminder/viewmodel/intakes.dart';
+import 'package:medicine_reminder/model/med_item.dart';
 
 class DateViewModel extends ChangeNotifier {
   // 1. Get reference to the History Box
@@ -64,5 +66,34 @@ class DateViewModel extends ChangeNotifier {
   void selectDate(DateTime date) {
     _selectedDate = date;
     notifyListeners();
+  }
+
+  void resolveDayStatus(
+    DateTime date,
+    List<MedItem> meds,
+    IntakeViewModel intakeVM,
+  ) {
+    bool anyTaken = false;
+    bool anyMissed = false;
+
+    for (final med in meds) {
+      if (intakeVM.isTaken(med.id, date)) {
+        anyTaken = true;
+      } else if (intakeVM.isMissed(med, date)) {
+        anyMissed = true;
+      }
+    }
+
+    DayFulfillment status;
+
+    if (anyTaken && !anyMissed) {
+      status = DayFulfillment.completed;
+    } else if (anyTaken && anyMissed) {
+      status = DayFulfillment.partial;
+    } else {
+      status = DayFulfillment.missed;
+    }
+
+    updateDateStatus(date, status);
   }
 }

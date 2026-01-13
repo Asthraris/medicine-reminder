@@ -23,7 +23,7 @@ class TodayMeds extends StatelessWidget {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(
               Icons.health_and_safety,
               size: 64,
@@ -48,19 +48,28 @@ class TodayMeds extends StatelessWidget {
       itemBuilder: (context, index) {
         final med = displayMeds[index];
 
-        final bool taken = intakeVM.isTaken(med.id, selectedDate);
+        return Consumer2<MedicationViewModel, IntakeViewModel>(
+          builder: (_, medVM, intakeVM, __) {
+            final bool taken = intakeVM.isTaken(med.id, selectedDate);
+            final bool missed = intakeVM.isMissed(med, selectedDate);
+            final bool withinGrace = intakeVM.canTake(med, selectedDate);
 
-        final bool missed = intakeVM.isMissed(med, selectedDate);
+            return MedicationTile(
+              item: med,
+              taken: taken,
+              missed: missed,
+              withinGrace: withinGrace,
+              onTap: () => intakeVM.take(med, selectedDate),
+              onCancelToday: () async {
+                await intakeVM.cancelToday(med.id, selectedDate);
+              },
+              onDelete: () async {
+                final medVM = context.read<MedicationViewModel>();
+                final intakeVM = context.read<IntakeViewModel>();
 
-        final bool withinGrace = intakeVM.isWithinGrace(med, selectedDate);
-
-        return MedicationTile(
-          item: med,
-          taken: taken,
-          missed: missed,
-          withinGrace: withinGrace,
-          onTap: () {
-            intakeVM.toggleTaken(med.id, selectedDate);
+                medVM.deleteMedicationWithCleanup(med, intakeVM);
+              },
+            );
           },
         );
       },

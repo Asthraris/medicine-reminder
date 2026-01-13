@@ -7,6 +7,13 @@ import 'package:medicine_reminder/viewmodel/dates.dart';
 class MyHome extends StatelessWidget {
   const MyHome({super.key});
 
+  String get _greeting {
+    var hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModelDate = DateViewModel();
@@ -16,9 +23,9 @@ class MyHome extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(right: 220),
+              padding: const EdgeInsets.only(right: 130),
               child: Text(
-                "hi user", //Change it later
+                _greeting, //Change it later
 
                 style: TextStyle(
                   fontWeight: FontWeight.w600,

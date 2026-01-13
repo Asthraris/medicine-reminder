@@ -11,6 +11,8 @@ import 'package:medicine_reminder/viewmodel/dates.dart';
 import 'package:medicine_reminder/viewmodel/meds.dart';
 import 'package:medicine_reminder/viewmodel/intakes.dart';
 
+import 'package:medicine_reminder/core/notification.dart';
+
 void main() async {
   //this init the app before leting flutter touch anything with db , required wile using db
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,7 @@ void main() async {
   await Hive.openBox<DateItem>('history_box');
   await Hive.openBox<MedIntake>('intake_box');
 
+  NotificationService.init();
   runApp(
     MultiProvider(
       providers: [

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:medicine_reminder/core/notification.dart';
 import 'package:medicine_reminder/model/med_item.dart'; // Make sure the path to your model is correct
+import 'package:medicine_reminder/model/med_intake.dart';
 
 class MedicationViewModel extends ChangeNotifier {
   // 1. Get reference to the medication box opened in main.dart
   final Box<MedItem> _box = Hive.box<MedItem>('medication_box');
+  final Box<MedIntake> intakeBox = Hive.box<MedIntake>('intake_box');
 
   // 2. Private list of all meds from Hive
   List<MedItem> _allMeds = [];
@@ -26,8 +29,27 @@ class MedicationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  int _notificationId(int medId, DateTime time) {
+    return ((medId * 1000) + (time.hour * 100 + time.minute)) & 0x7FFFFFFF;
+  }
+
   /// Adds a new medication to Hive and refreshes the local list
-  void addMedication(MedItem med) {
+  Future<void> addMedication(MedItem med) async {
+    try {
+      final notificationId = _notificationId(med.id, med.scheduledTime);
+
+      debugPrint('Scheduling notification for ${med.name}');
+      debugPrint('Notification ID: $notificationId');
+      debugPrint('Scheduled time: ${med.scheduledTime}');
+      await NotificationService.scheduleMedNotification(
+        id: notificationId,
+        title: 'Medication Reminder',
+        body: 'Time to take ${med.name}',
+        time: med.scheduledTime,
+      );
+    } catch (e) {
+      debugPrint('Notification scheduling failed: $e');
+    }
     _box.add(med);
     _loadMeds(); // Refresh the local list and notify UI
   }
@@ -72,5 +94,24 @@ class MedicationViewModel extends ChangeNotifier {
   // Helper to compare dates without time
   bool isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  Future<void> deleteMedicationWithCleanup(MedItem med, intakeVM) async {
+    // 1. Delete med
+    await _box.delete(med.id);
+
+    // 2. Delete all intakes (delegated correctly)
+    await intakeVM.deleteAllForMedication(med.id);
+
+    // 3. Cancel notifications
+    for (int i = 0; i < 7; i++) {
+      final id = _notificationId(
+        med.id,
+        med.scheduledTime.add(Duration(days: i)),
+      );
+      await NotificationService.cancelNotification(id);
+    }
+
+    _loadMeds(); // updates med list
   }
 }
